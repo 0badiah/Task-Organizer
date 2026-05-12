@@ -1,4 +1,4 @@
-index.html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -211,6 +211,17 @@ index.html<!DOCTYPE html>
   }
   .t-btn:hover { background: var(--surface2); color: var(--ink2); }
 
+  .note-input {
+    display: block; width: 100%; margin-top: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px;
+    color: var(--ink2); background: transparent;
+    border: none; border-bottom: 1px dashed var(--border2);
+    outline: none; padding: 2px 0;
+    font-style: italic;
+  }
+  .note-input::placeholder { color: var(--ink3); }
+  .note-input:focus { border-bottom-color: var(--ink3); color: var(--ink); font-style: normal; }
+
   .empty-state {
     padding: 2rem 1rem; text-align: center;
     font-size: 13px; color: var(--ink3); font-style: italic;
@@ -275,8 +286,9 @@ index.html<!DOCTYPE html>
   <select id="newPri">
     <option value="high">High</option>
     <option value="med" selected>Medium</option>
-    <option value="low">Low</option>
+    <option value="low">Soft</option>
   </select>
+  <input id="newNote" type="text" placeholder="Notes (optional)" maxlength="200" style="min-width:160px;flex:1.5" />
   <button class="add-btn" onclick="addTask()">+ Add</button>
 </div>
 
@@ -363,12 +375,14 @@ function addTask() {
   tasks.push({
     id: nextId++,
     name,
+    note: document.getElementById('newNote').value.trim(),
     horizon: document.getElementById('newHorizon').value,
     pri: document.getElementById('newPri').value,
     done: false,
     created: Date.now()
   });
   document.getElementById('newTask').value = '';
+  document.getElementById('newNote').value = '';
   save(); render();
 }
 
@@ -422,7 +436,7 @@ function render() {
       const ageDays = (Date.now() - t.created) / DAY;
       const ai = ageInfo(ageDays, t.done);
       const priCls = `chip-pri-${t.pri}`;
-      const priLabel = t.pri === 'high' ? 'high' : t.pri === 'med' ? 'med' : 'low';
+      const priLabel = t.pri === 'high' ? 'high' : t.pri === 'med' ? 'med' : 'soft';
       const order = ['today','week','month','later'];
       const idx = order.indexOf(h.key);
       const canUp = idx > 0;
@@ -435,6 +449,15 @@ function render() {
             <span class="chip ${priCls}">${priLabel}</span>
             <span class="chip ${ai.cls}">${ai.label} · ${ageStr(ageDays)}</span>
           </div>
+          <input
+            class="note-input"
+            type="text"
+            value="${escHtml(t.note||'')}"
+            placeholder="Add a note..."
+            maxlength="200"
+            onchange="updateNote(${t.id}, this.value)"
+            onclick="event.stopPropagation()"
+          />
         </div>
         <div class="task-actions">
           ${canUp ? `<button class="t-btn" onclick="moveTask(${t.id},-1)" title="Move earlier">↑</button>` : '<span style="width:19px"></span>'}
@@ -459,6 +482,11 @@ function render() {
   const d = new Date();
   const dateEl = document.getElementById('dateDisplay');
   if (dateEl) dateEl.textContent = d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+}
+
+function updateNote(id, val) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.note = val.trim(); save(); }
 }
 
 function escHtml(s) {
