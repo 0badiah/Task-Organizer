@@ -480,6 +480,487 @@ function render() {
   }).join('');
 
   const d = new Date();
+  const day = d.getDay();
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - ((day + 6) % 7));
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const weekDays = days.map((name, i) => {
+    const dd = new Date(monday);
+    dd.setDate(monday.getDate() + i);
+    const isToday = dd.toDateString() === d.toDateString();
+    return `<span style="display:inline-block;text-align:center;padding:0 4px;${isToday?'font-weight:500;color:var(--ink);':''}">
+      <span style="display:block;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3)">${name}</span>
+      <span style="display:block;font-size:13px;${isToday?'background:var(--ink);color:var(--bg);border-radius:50%;width:20px;height:20px;line-height:20px;margin:1px auto 0;':'color:var(--ink2);margin-top:1px;'}">${dd.getDate()}</span>
+    </span>`;
+  }).join('');
+  const dateEl = document.getElementById('dateDisplay');
+  if (dateEl) dateEl.innerHTML = `<div style="display:flex;gap:2px;align-items:flex-start">${weekDays}</div>`;
+}
+
+function updateNote(id, val) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.note = val.trim(); save(); }
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+applyTheme();
+render();
+
+// Refresh age indicators every 10 minutes
+setInterval(() => render(), 10 * 60 * 1000);
+</script>
+</body>
+</html>
+    --border2: rgba(240,236,227,0.16);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    transition: background 0.3s, color 0.3s;
+  }
+
+  /* Header */
+  header {
+    padding: 2rem 2rem 1.25rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .wordmark {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .wordmark em { font-style: italic; color: var(--ink2); }
+  .header-meta { font-size: 12px; color: var(--ink3); text-align: right; line-height: 1.5; }
+  .theme-btn {
+    background: none; border: 1px solid var(--border2); border-radius: 20px;
+    padding: 5px 12px; font-size: 12px; color: var(--ink2); cursor: pointer;
+    font-family: 'DM Sans', sans-serif; margin-left: 12px;
+  }
+  .theme-btn:hover { background: var(--surface2); }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex; gap: 0; border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .stat-pill {
+    padding: 0.75rem 1.5rem; text-align: center; flex: 1; min-width: 90px;
+    border-right: 1px solid var(--border);
+  }
+  .stat-pill:last-child { border-right: none; }
+  .stat-n { font-size: 1.5rem; font-weight: 500; font-family: 'DM Serif Display', serif; }
+  .stat-l { font-size: 11px; color: var(--ink3); margin-top: 1px; letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* Add task */
+  .add-area {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    background: var(--surface);
+  }
+  .add-area input, .add-area select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    padding: 8px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--ink);
+    outline: none;
+  }
+  .add-area input { flex: 1; min-width: 200px; }
+  .add-area input:focus { border-color: var(--ink3); }
+  .add-btn {
+    padding: 8px 18px;
+    background: var(--ink);
+    color: var(--bg);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+  }
+  .add-btn:hover { opacity: 0.8; }
+
+  /* Main board */
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .horizon {
+    border-right: 1px solid var(--border);
+    min-height: 300px;
+  }
+  .horizon:last-child { border-right: none; }
+  .h-head {
+    padding: 1rem 1.25rem 0.75rem;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--surface);
+    z-index: 2;
+  }
+  .h-label {
+    font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink3);
+    display: flex; align-items: center; gap: 7px;
+  }
+  .h-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .h-count-badge {
+    margin-left: auto;
+    font-size: 11px;
+    background: var(--surface2);
+    color: var(--ink2);
+    border-radius: 10px;
+    padding: 1px 7px;
+  }
+  .task-list { padding: 8px; }
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-left: 3px solid var(--border);
+    display: flex; align-items: flex-start; gap: 8px;
+    animation: slideIn 0.18s ease;
+  }
+  @keyframes slideIn { from { opacity:0; transform: translateY(-4px); } to { opacity:1; transform:none; } }
+  .task-card.done { opacity: 0.45; }
+  .task-card.overdue { background: #fff5f5; }
+  [data-theme="dark"] .task-card.overdue { background: #2a1515; }
+  .task-card.aging { background: #fffaf0; }
+  [data-theme="dark"] .task-card.aging { background: #241e0f; }
+
+  .task-check {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--border2);
+    flex-shrink: 0; margin-top: 2px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .task-check:hover { border-color: var(--ink3); }
+  .task-check.checked { background: var(--ink); border-color: var(--ink); }
+  .task-check.checked::after { content: ''; width: 5px; height: 3px; border-left: 1.5px solid var(--bg); border-bottom: 1.5px solid var(--bg); transform: rotate(-45deg) translate(1px,-1px); display: block; }
+
+  .task-body { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 13.5px; font-weight: 400; line-height: 1.4;
+    color: var(--ink); word-break: break-word;
+  }
+  .task-name.done { text-decoration: line-through; color: var(--ink3); }
+  .task-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+  .chip {
+    font-size: 10.5px; padding: 2px 6px; border-radius: 4px; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  .chip-pri-high { background: #fde8e8; color: #a32d2d; }
+  .chip-pri-med  { background: #fef3e2; color: #854f0b; }
+  .chip-pri-low  { background: #e8f4ee; color: #2d6a4f; }
+  [data-theme="dark"] .chip-pri-high { background: #3a1515; color: #f09595; }
+  [data-theme="dark"] .chip-pri-med  { background: #332510; color: #FAC775; }
+  [data-theme="dark"] .chip-pri-low  { background: #0f2a1a; color: #5DCAA5; }
+  .chip-age-fresh   { background: #e8f4ee; color: #2d6a4f; }
+  .chip-age-aging   { background: #fef3e2; color: #854f0b; }
+  .chip-age-overdue { background: #fde8e8; color: #a32d2d; }
+  .chip-age-done    { background: #eeedf9; color: #534AB7; }
+  [data-theme="dark"] .chip-age-fresh   { background: #0f2a1a; color: #5DCAA5; }
+  [data-theme="dark"] .chip-age-aging   { background: #332510; color: #FAC775; }
+  [data-theme="dark"] .chip-age-overdue { background: #3a1515; color: #f09595; }
+  [data-theme="dark"] .chip-age-done    { background: #211e3a; color: #AFA9EC; }
+
+  .task-actions { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+  .t-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--ink3); font-size: 13px; padding: 2px 3px;
+    border-radius: 4px; line-height: 1;
+  }
+  .t-btn:hover { background: var(--surface2); color: var(--ink2); }
+
+  .note-input {
+    display: block; width: 100%; margin-top: 6px;
+    font-family: 'DM Sans', sans-serif; font-size: 12px;
+    color: var(--ink2); background: transparent;
+    border: none; border-bottom: 1px dashed var(--border2);
+    outline: none; padding: 2px 0;
+    font-style: italic;
+  }
+  .note-input::placeholder { color: var(--ink3); }
+  .note-input:focus { border-bottom-color: var(--ink3); color: var(--ink); font-style: normal; }
+
+  .empty-state {
+    padding: 2rem 1rem; text-align: center;
+    font-size: 13px; color: var(--ink3); font-style: italic;
+  }
+
+  /* Legend */
+  .legend {
+    padding: 0.75rem 2rem;
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+    font-size: 11.5px; color: var(--ink3);
+    border-bottom: 1px solid var(--border);
+  }
+  .leg { display: flex; align-items: center; gap: 5px; }
+  .leg-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+  /* Footer */
+  footer {
+    padding: 1rem 2rem;
+    font-size: 11.5px; color: var(--ink3);
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+  }
+  .clear-btn {
+    background: none; border: 1px solid var(--border2);
+    border-radius: var(--radius-sm); padding: 4px 10px;
+    font-size: 11.5px; color: var(--ink3); cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .clear-btn:hover { color: var(--overdue); border-color: var(--overdue); }
+
+  @media (max-width: 600px) {
+    header { padding: 1.25rem 1rem 1rem; }
+    .wordmark { font-size: 1.5rem; }
+    .add-area { padding: 0.75rem 1rem; }
+    .legend { padding: 0.75rem 1rem; }
+    footer { padding: 0.75rem 1rem; }
+    .stat-pill { padding: 0.6rem 0.75rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="wordmark">task <em>garden</em></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <div class="header-meta" id="dateDisplay"></div>
+    <button class="theme-btn" onclick="toggleTheme()">☽ dark</button>
+  </div>
+</header>
+
+<div class="stats-bar" id="statsBar"></div>
+
+<div class="add-area">
+  <input id="newTask" type="text" placeholder="What needs doing?" maxlength="120" />
+  <select id="newHorizon">
+    <option value="today">Today</option>
+    <option value="week">This Week</option>
+    <option value="month">This Month</option>
+    <option value="later">Later</option>
+  </select>
+  <select id="newPri">
+    <option value="high">High</option>
+    <option value="med" selected>Medium</option>
+    <option value="low">Soft</option>
+  </select>
+  <input id="newNote" type="text" placeholder="Notes (optional)" maxlength="200" style="min-width:160px;flex:1.5" />
+  <button class="add-btn" onclick="addTask()">+ Add</button>
+</div>
+
+<div class="board" id="board"></div>
+
+<div class="legend">
+  <span style="font-weight:500;color:var(--ink2)">Age indicator:</span>
+  <div class="leg"><div class="leg-dot" style="background:#2d7a4f"></div>Fresh (under 1 day)</div>
+  <div class="leg"><div class="leg-dot" style="background:#c77c1a"></div>Aging (1–2 days)</div>
+  <div class="leg"><div class="leg-dot" style="background:#c0392b"></div>Overdue (2+ days)</div>
+  <div class="leg"><div class="leg-dot" style="background:#7c6fcd"></div>Done</div>
+</div>
+
+<footer>
+  <span id="saveStatus">All changes saved locally.</span>
+  <button class="clear-btn" onclick="clearDone()">Clear completed tasks</button>
+</footer>
+
+<script>
+const DAY = 86400000;
+const STORE_KEY = 'taskgarden_v1';
+
+const HORIZONS = [
+  { key: 'today', label: 'Today',      color: '#c0392b' },
+  { key: 'week',  label: 'This Week',  color: '#c77c1a' },
+  { key: 'month', label: 'This Month', color: '#2d7a4f' },
+  { key: 'later', label: 'Later',      color: '#2563a8' },
+];
+
+function defaultTasks() {
+  const n = Date.now();
+  return [
+    { id: 1, name: 'Review team emails', horizon: 'today', pri: 'high', done: false, created: n - 0.4*DAY },
+    { id: 2, name: 'Update project roadmap', horizon: 'week', pri: 'high', done: false, created: n - 0.2*DAY },
+    { id: 3, name: 'Schedule monthly review', horizon: 'week', pri: 'med', done: false, created: n - 2.6*DAY },
+    { id: 4, name: 'Prepare Q2 summary', horizon: 'month', pri: 'high', done: false, created: n - 1.1*DAY },
+    { id: 5, name: 'Research new tools', horizon: 'later', pri: 'low', done: false, created: n - 0.1*DAY },
+  ];
+}
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { tasks: defaultTasks(), nextId: 10, theme: 'light' };
+}
+
+function save() {
+  localStorage.setItem(STORE_KEY, JSON.stringify({ tasks, nextId, theme }));
+  const el = document.getElementById('saveStatus');
+  if (el) el.textContent = 'Saved ' + new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+
+let { tasks, nextId, theme } = load();
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.querySelector('.theme-btn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀ light' : '☽ dark';
+}
+
+function toggleTheme() {
+  theme = theme === 'dark' ? 'light' : 'dark';
+  applyTheme(); save();
+}
+
+function ageInfo(ageDays, done) {
+  if (done) return { label: 'done', cls: 'chip-age-done', cardCls: '', borderColor: '#7c6fcd' };
+  if (ageDays < 1) return { label: 'fresh', cls: 'chip-age-fresh', cardCls: '', borderColor: '#2d7a4f' };
+  if (ageDays < 2) return { label: 'aging', cls: 'chip-age-aging', cardCls: 'aging', borderColor: '#c77c1a' };
+  return { label: 'overdue', cls: 'chip-age-overdue', cardCls: 'overdue', borderColor: '#c0392b' };
+}
+
+function ageStr(ageDays) {
+  if (ageDays < 0.04) return 'just now';
+  if (ageDays < 1) return Math.round(ageDays * 24) + 'h old';
+  return (Math.round(ageDays * 10) / 10) + 'd old';
+}
+
+function addTask() {
+  const name = document.getElementById('newTask').value.trim();
+  if (!name) return;
+  tasks.push({
+    id: nextId++,
+    name,
+    note: document.getElementById('newNote').value.trim(),
+    horizon: document.getElementById('newHorizon').value,
+    pri: document.getElementById('newPri').value,
+    done: false,
+    created: Date.now()
+  });
+  document.getElementById('newTask').value = '';
+  document.getElementById('newNote').value = '';
+  save(); render();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.activeElement === document.getElementById('newTask')) addTask();
+});
+
+function toggleDone(id) {
+  const t = tasks.find(t => t.id === id);
+  if (t) { t.done = !t.done; save(); render(); }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  save(); render();
+}
+
+function moveTask(id, dir) {
+  const order = ['today', 'week', 'month', 'later'];
+  const t = tasks.find(t => t.id === id);
+  const i = order.indexOf(t.horizon);
+  const ni = i + dir;
+  if (ni >= 0 && ni < order.length) { t.horizon = order[ni]; save(); render(); }
+}
+
+function clearDone() {
+  if (!tasks.some(t => t.done)) return;
+  tasks = tasks.filter(t => !t.done);
+  save(); render();
+}
+
+function render() {
+  const total   = tasks.length;
+  const done    = tasks.filter(t => t.done).length;
+  const active  = tasks.filter(t => !t.done).length;
+  const overdue = tasks.filter(t => !t.done && (Date.now() - t.created) / DAY > 2).length;
+
+  document.getElementById('statsBar').innerHTML = [
+    ['Total', total, 'var(--ink)'],
+    ['Active', active, '#2563a8'],
+    ['Done', done, '#2d7a4f'],
+    ['Overdue', overdue, '#c0392b'],
+  ].map(([l,n,c]) => `<div class="stat-pill">
+    <div class="stat-n" style="color:${c}">${n}</div>
+    <div class="stat-l">${l}</div>
+  </div>`).join('');
+
+  document.getElementById('board').innerHTML = HORIZONS.map(h => {
+    const hTasks = tasks.filter(t => t.horizon === h.key);
+    const cards = hTasks.length ? hTasks.map(t => {
+      const ageDays = (Date.now() - t.created) / DAY;
+      const ai = ageInfo(ageDays, t.done);
+      const priCls = `chip-pri-${t.pri}`;
+      const priLabel = t.pri === 'high' ? 'high' : t.pri === 'med' ? 'med' : 'soft';
+      const order = ['today','week','month','later'];
+      const idx = order.indexOf(h.key);
+      const canUp = idx > 0;
+      const canDn = idx < 3;
+      return `<div class="task-card${t.done?' done':''} ${ai.cardCls}" style="border-left-color:${ai.borderColor}">
+        <div class="task-check${t.done?' checked':''}" onclick="toggleDone(${t.id})" title="Toggle done"></div>
+        <div class="task-body">
+          <div class="task-name${t.done?' done':''}">${escHtml(t.name)}</div>
+          <div class="task-chips">
+            <span class="chip ${priCls}">${priLabel}</span>
+            <span class="chip ${ai.cls}">${ai.label} · ${ageStr(ageDays)}</span>
+          </div>
+          <input
+            class="note-input"
+            type="text"
+            value="${escHtml(t.note||'')}"
+            placeholder="Add a note..."
+            maxlength="200"
+            onchange="updateNote(${t.id}, this.value)"
+            onclick="event.stopPropagation()"
+          />
+        </div>
+        <div class="task-actions">
+          ${canUp ? `<button class="t-btn" onclick="moveTask(${t.id},-1)" title="Move earlier">↑</button>` : '<span style="width:19px"></span>'}
+          ${canDn ? `<button class="t-btn" onclick="moveTask(${t.id},1)"  title="Move later">↓</button>`  : '<span style="width:19px"></span>'}
+          <button class="t-btn" onclick="deleteTask(${t.id})" title="Delete" style="color:var(--ink3);font-size:11px">✕</button>
+        </div>
+      </div>`;
+    }).join('') : `<div class="empty-state">Nothing here</div>`;
+
+    return `<div class="horizon">
+      <div class="h-head">
+        <div class="h-label">
+          <div class="h-dot" style="background:${h.color}"></div>
+          ${h.label}
+          <span class="h-count-badge">${hTasks.filter(t=>!t.done).length}</span>
+        </div>
+      </div>
+      <div class="task-list">${cards}</div>
+    </div>`;
+  }).join('');
+
+  const d = new Date();
   const dateEl = document.getElementById('dateDisplay');
   if (dateEl) dateEl.textContent = d.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
 }
